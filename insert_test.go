@@ -3,11 +3,12 @@ package fsbs
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"testing"
 )
 
 func TestInserting(t *testing.T) {
-	count := 100000
+	count := 70000 // large enough that we fill the first allocator
 	var keys [][]byte
 	var vals [][]byte
 	for i := 0; i < count; i++ {
@@ -15,7 +16,16 @@ func TestInserting(t *testing.T) {
 		vals = append(vals, []byte(fmt.Sprintf("val%d", i)))
 	}
 
-	fsbs, _ := Mock()
+	dir, err := ioutil.TempDir("", "fsbs")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fsbs, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	for i := 0; i < count; i++ {
 		err := fsbs.Put(keys[i], vals[i])
 		if err != nil {
@@ -28,12 +38,7 @@ func TestInserting(t *testing.T) {
 		}
 
 		if !bytes.Equal(vals[i], out) {
-			t.Fatal("mismatch", i)
-		}
-
-		if i%100 == 0 {
-			a, b := fsbs.density()
-			fmt.Println(i, a, b)
+			t.Fatal("mismatch", i, vals[i], out)
 		}
 	}
 
@@ -43,8 +48,7 @@ func TestInserting(t *testing.T) {
 			t.Fatalf("key %d: %s", i, err)
 		}
 		if !bytes.Equal(val, vals[i]) {
-			t.Fatal("Retrieved data not correct")
+			t.Fatal("Retrieved data not correct", i, val, vals[i])
 		}
 	}
-
 }
