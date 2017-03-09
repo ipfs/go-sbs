@@ -1,0 +1,11 @@
+message Record {
+	optional Type type = 1;
+	repeated uint64 blocks = 2;
+	optional uint64 size = 3;
+	optional bytes data = 4;
+
+	enum Type {
+		Direct = 1;
+		Indirect = 2;
+	}
+}
