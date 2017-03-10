@@ -15,6 +15,10 @@ var ErrNotFound = fmt.Errorf("not found")
 
 const BlockSize = 8192
 
+var (
+	bucketOffset = []byte("offsets")
+)
+
 type Fsbs struct {
 	Mem []byte
 
@@ -24,9 +28,6 @@ type Fsbs struct {
 
 	alloc    *AllocatorBlock
 	curAlloc *AllocatorBlock
-
-	curTx  *bolt.Tx
-	bucket *bolt.Bucket
 }
 
 func Open(path string) (*Fsbs, error) {
@@ -38,7 +39,7 @@ func Open(path string) (*Fsbs, error) {
 		return nil, err
 	}
 	err = db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("data"))
+		_, err := tx.CreateBucketIfNotExists(bucketOffset)
 		return err
 	})
 	if err != nil {
@@ -81,10 +82,6 @@ func Open(path string) (*Fsbs, error) {
 }
 
 func (fsbs *Fsbs) Close() error {
-	if err := fsbs.curTx.Commit(); err != nil {
-		return err
-	}
-
 	if err := fsbs.index.Close(); err != nil {
 		return err
 	}
@@ -114,13 +111,14 @@ func (fsbs *Fsbs) expand() error {
 
 	fsbs.mm = nmm
 
-	offs := fsbs.curAlloc.Offset + BlocksPerAllocator
-	nalloc, err := LoadAllocator(fsbs.mm[offs*BlockSize : (offs+1)*BlockSize])
+	newOffs := fsbs.curAlloc.Offset + BlocksPerAllocator
+	newOffsBytes := newOffs * BlockSize
+	nalloc, err := LoadAllocator(fsbs.mm[newOffsBytes : newOffsBytes+BlockSize])
 	if err != nil {
 		return err
 	}
 
-	nalloc.Offset = offs
+	nalloc.Offset = newOffs
 	fsbs.curAlloc = nalloc
 	return nil
 }
@@ -169,34 +167,44 @@ func (fsbs *Fsbs) Put(k []byte, val []byte) error {
 		return err
 	}
 
-	buck, err := fsbs.getBucket()
-	if err != nil {
-		return err
-	}
-	return buck.Put(k, data)
+	err = fsbs.index.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketOffset)
+		return b.Put(k, data)
+	})
+
+	return err
 }
 
-func (fsbs *Fsbs) getBucket() (*bolt.Bucket, error) {
-	if fsbs.bucket == nil {
-		tx, err := fsbs.index.Begin(true)
-		if err != nil {
-			return nil, err
-		}
-		fsbs.curTx = tx
-		fsbs.bucket = tx.Bucket([]byte("data"))
-	}
+func (fsbs *Fsbs) getPB(k []byte) (*pb.Record, error) {
+	var prec pb.Record
 
-	return fsbs.bucket, nil
+	err := fsbs.index.View(func(tx *bolt.Tx) error {
+		rec := tx.Bucket(bucketOffset).Get(k)
+		if len(rec) == 0 {
+			return ErrNotFound
+		}
+
+		err := proto.Unmarshal(rec, &prec)
+		return err
+	})
+	return &prec, err
+}
+
+func (fsbs *Fsbs) Has(k []byte) (bool, error) {
+	has := false
+	err := fsbs.index.View(func(tx *bolt.Tx) error {
+		rec := tx.Bucket(bucketOffset).Get(k)
+		if len(rec) == 0 {
+			has = true
+		}
+		return nil
+	})
+	return has, err
 }
 
 func (fsbs *Fsbs) Get(k []byte) ([]byte, error) {
-	rec := fsbs.bucket.Get(k)
-	if rec == nil {
-		return nil, ErrNotFound
-	}
-
-	var prec pb.Record
-	if err := proto.Unmarshal(rec, &prec); err != nil {
+	prec, err := fsbs.getPB(k)
+	if err != nil {
 		return nil, err
 	}
 
@@ -215,13 +223,22 @@ func (fsbs *Fsbs) Get(k []byte) ([]byte, error) {
 }
 
 func (fsbs *Fsbs) Delete(k []byte) error {
-	rec := fsbs.bucket.Get(k)
-	if rec == nil {
-		return ErrNotFound
-	}
-
 	var prec pb.Record
-	if err := proto.Unmarshal(rec, &prec); err != nil {
+
+	err := fsbs.index.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketOffset)
+		rec := b.Get(k)
+		if len(rec) == 0 {
+			return ErrNotFound
+		}
+		err := b.Delete(k)
+		if err != nil {
+			return err
+		}
+
+		return proto.Unmarshal(rec, &prec)
+	})
+	if err != nil {
 		return err
 	}
 
@@ -247,6 +264,5 @@ func (fsbs *Fsbs) Delete(k []byte) error {
 }
 
 func (fsbs *Fsbs) GetIterator() func() ([]byte, []byte) {
-	curs := fsbs.bucket.Cursor()
-	return curs.Next
+	return nil
 }

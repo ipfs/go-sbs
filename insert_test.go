@@ -31,15 +31,6 @@ func TestInserting(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		out, err := fsbs.Get(keys[i])
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if !bytes.Equal(vals[i], out) {
-			t.Fatal("mismatch", i, vals[i], out)
-		}
 	}
 
 	for i, k := range keys {
