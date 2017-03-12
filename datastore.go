@@ -1,6 +1,7 @@
 package fsbs
 
 import (
+	"github.com/boltdb/bolt"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 )
@@ -79,11 +80,35 @@ func (bt *fsbsbatch) Delete(key ds.Key) error {
 }
 
 func (bt *fsbsbatch) Commit() error {
-	for k, v := range bt.puts {
-		if err := bt.fs.Put(k, v); err != nil {
+	indexData := make(map[ds.Key][]byte)
+
+	for k, val := range bt.puts {
+		nblks := blocksNeeded(uint64(len(val)))
+		blks, err := bt.fs.fsbs.allocateN(nblks)
+		if err != nil {
 			return err
 		}
+
+		bt.fs.fsbs.copyToStorage(val, blks)
+
+		data, err := createRecord(val, blks)
+		if err != nil {
+			return err
+		}
+
+		indexData[k] = data
 	}
+
+	bt.fs.fsbs.index.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketOffset)
+		for k, v := range indexData {
+			err := b.Put(k.Bytes(), v)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 
 	for k, _ := range bt.deletes {
 		if err := bt.fs.Delete(k); err != nil {

@@ -56,7 +56,7 @@ func Open(path string) (*Fsbs, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = fi.Truncate(int64(BlockSize * BlocksPerAllocator))
+		err = fi.Truncate(int64(BlockSize * AllocatorSlab))
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +94,10 @@ func (fsbs *Fsbs) Close() error {
 }
 
 func (fsbs *Fsbs) expand() error {
-	err := fsbs.mmfi.Truncate(int64(fsbs.curAlloc.Offset + (2 * (BlockSize * BlocksPerAllocator))))
+	oldAllocEnd := fsbs.curAlloc.Offset + BlockSize*BlocksPerAllocator
+
+	truncateLen := int64(oldAllocEnd + AllocatorSlab*BlockSize)
+	err := fsbs.mmfi.Truncate(truncateLen)
 	if err != nil {
 		return err
 	}
@@ -123,38 +126,50 @@ func (fsbs *Fsbs) expand() error {
 	return nil
 }
 
-func (fsbs *Fsbs) Put(k []byte, val []byte) error {
-	nblks := uint64(len(val)) / BlockSize
-	if uint64(len(val))%BlockSize != 0 {
+func blocksNeeded(length uint64) uint64 {
+	nblks := length / BlockSize
+	if length%BlockSize != 0 {
 		nblks++
 	}
+	return nblks
+}
 
+func (fsbs *Fsbs) allocateN(nblks uint64) ([]uint64, error) {
 	blks, err := fsbs.curAlloc.Allocate(nblks)
+
 	switch err {
 	case ErrAllocatorFull:
 		if err := fsbs.expand(); err != nil {
-			return err
+			return nil, err
 		}
 
 		mblks, err := fsbs.curAlloc.Allocate(nblks - uint64(len(blks)))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		blks = append(blks, mblks...)
-	default:
-		return err
+		fallthrough
 	case nil:
+		return blks, nil
+	default:
+		return nil, err
 	}
+	panic("shouldn't get here")
+}
 
+func (fsbs *Fsbs) copyToStorage(val []byte, blks []uint64) {
 	for i, blk := range blks {
 		beg := i * BlockSize
 		end := (i + 1) * BlockSize
-		if len(val)-beg < end {
+		if len(val) < end {
 			end = len(val)
 		}
+		//fmt.Printf("trying to write: %d, blocklen: %d", blk, len(fsbs.mm)/BlockSize)
 		copy(fsbs.mm[blk*BlockSize:(blk+1)*BlockSize], val[beg:end])
 	}
+}
 
+func createRecord(val []byte, blks []uint64) ([]byte, error) {
 	t := pb.Record_Indirect
 	rec := &pb.Record{
 		Blocks: blks,
@@ -162,10 +177,21 @@ func (fsbs *Fsbs) Put(k []byte, val []byte) error {
 		Type:   &t,
 	}
 
-	data, err := proto.Marshal(rec)
+	return proto.Marshal(rec)
+}
+
+func (fsbs *Fsbs) Put(k []byte, val []byte) error {
+	nblks := blocksNeeded(uint64(len(val)))
+	blks, err := fsbs.allocateN(nblks)
 	if err != nil {
 		return err
 	}
+	data, err := createRecord(val, blks)
+	if err != nil {
+		return err
+	}
+
+	fsbs.copyToStorage(val, blks)
 
 	err = fsbs.index.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketOffset)

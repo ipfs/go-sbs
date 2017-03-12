@@ -14,6 +14,7 @@ const (
 const (
 	AllocatorHeaderSize = 64
 	BlocksPerAllocator  = (BlockSize - AllocatorHeaderSize) * 8
+	AllocatorSlab       = BlocksPerAllocator + 1
 )
 
 type AllocatorBlock struct {
@@ -82,8 +83,10 @@ func (a *AllocatorBlock) Allocate(n uint64) ([]uint64, error) {
 		return nil, ErrAllocatorFull
 	}
 
+	var errFinal error
 	if n+a.InUse > BlocksPerAllocator {
-		panic("cant yet handle allocations past allocator bounds")
+		n = BlocksPerAllocator - a.InUse
+		errFinal = ErrAllocatorFull
 	}
 
 	var out []uint64
@@ -97,7 +100,7 @@ func (a *AllocatorBlock) Allocate(n uint64) ([]uint64, error) {
 	a.InUse += n
 	writeInt24(a.buf[1:4], a.InUse)
 
-	return out, nil
+	return out, errFinal
 }
 
 func (a *AllocatorBlock) Free(blks []uint64) error {
