@@ -2,7 +2,7 @@ package fsbs
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -18,10 +18,7 @@ func TestInserting(t *testing.T) {
 		vals = append(vals, rng.getRandBlock())
 	}
 
-	dir, err := ioutil.TempDir("", "fsbs")
-	if err != nil {
-		t.Fatal(err)
-	}
+	dir := fsbsDir(t)
 
 	fsbs, err := Open(dir)
 	if err != nil {
@@ -45,4 +42,5 @@ func TestInserting(t *testing.T) {
 		}
 	}
 
+	os.RemoveAll(dir)
 }

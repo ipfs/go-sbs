@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 )
@@ -63,14 +65,16 @@ func fsbsDir(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Log("fsbs dir:", dir)
 	return dir
 }
 
 func TestAllocatorOverrideTest(t *testing.T) {
 	rng := rng{}
 
+	t.Logf("%x", AllocatorSlab*BlockSize)
+
 	dir := fsbsDir(t)
-	t.Log("fsbs dir:", dir)
 	fsbs, err := Open(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -136,4 +140,41 @@ func TestAllocatorOverrideTest(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	os.RemoveAll(dir)
+}
+
+func TestSampleExpand(t *testing.T) {
+	dir := fsbsDir(t)
+	fsbs, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blks, err := fsbs.curAlloc.Allocate(math.MaxUint64)
+	if err != ErrAllocatorFull {
+		t.Fatal(err)
+	}
+	if len(blks) < 8000 {
+		t.Fatalf("too little %d", len(blks))
+	}
+	buf := make([]byte, BlockSize)
+	for i, _ := range buf {
+		buf[i] = 0x41
+	}
+
+	for _, blk := range blks {
+		fsbs.copyToStorage(buf, []uint64{blk})
+	}
+
+	err = nil
+	err = fsbs.expand()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = fsbs.expand()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fsbs.Close()
+
+	os.RemoveAll(dir)
 }

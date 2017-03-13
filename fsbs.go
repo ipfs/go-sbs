@@ -94,7 +94,7 @@ func (fsbs *Fsbs) Close() error {
 }
 
 func (fsbs *Fsbs) expand() error {
-	oldAllocEnd := fsbs.curAlloc.Offset + BlockSize*BlocksPerAllocator
+	oldAllocEnd := BlockSize * (fsbs.curAlloc.Offset + BlocksPerAllocator)
 
 	truncateLen := int64(oldAllocEnd + AllocatorSlab*BlockSize)
 	err := fsbs.mmfi.Truncate(truncateLen)
@@ -116,6 +116,9 @@ func (fsbs *Fsbs) expand() error {
 
 	newOffs := fsbs.curAlloc.Offset + BlocksPerAllocator
 	newOffsBytes := newOffs * BlockSize
+	//log.Printf("oldAllocEnd: %d, len(mm): %d, newLen: %d", oldAllocEnd, len(fsbs.mm), truncateLen)
+	//log.Printf("newOffsBytes: %d", newOffsBytes)
+
 	nalloc, err := LoadAllocator(fsbs.mm[newOffsBytes : newOffsBytes+BlockSize])
 	if err != nil {
 		return err
@@ -154,7 +157,6 @@ func (fsbs *Fsbs) allocateN(nblks uint64) ([]uint64, error) {
 	default:
 		return nil, err
 	}
-	panic("shouldn't get here")
 }
 
 func (fsbs *Fsbs) copyToStorage(val []byte, blks []uint64) {

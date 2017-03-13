@@ -14,7 +14,7 @@ const (
 const (
 	AllocatorHeaderSize = 64
 	BlocksPerAllocator  = (BlockSize - AllocatorHeaderSize) * 8
-	AllocatorSlab       = BlocksPerAllocator + 1
+	AllocatorSlab       = BlocksPerAllocator
 )
 
 type AllocatorBlock struct {
@@ -84,7 +84,7 @@ func (a *AllocatorBlock) Allocate(n uint64) ([]uint64, error) {
 	}
 
 	var errFinal error
-	if n+a.InUse > BlocksPerAllocator {
+	if n > BlocksPerAllocator-a.InUse {
 		n = BlocksPerAllocator - a.InUse
 		errFinal = ErrAllocatorFull
 	}
