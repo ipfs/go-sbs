@@ -46,7 +46,7 @@ func Open(path string) (*Fsbs, error) {
 		return nil, err
 	}
 
-	fi, err := os.Open(datapath)
+	fi, err := os.OpenFile(datapath, os.O_RDWR, 0300)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err

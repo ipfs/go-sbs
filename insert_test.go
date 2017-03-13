@@ -2,18 +2,20 @@ package fsbs
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"testing"
 )
 
 func TestInserting(t *testing.T) {
-	count := 70000 // large enough that we fill the first allocator
-	var keys [][]byte
-	var vals [][]byte
+	rng := rng{}
+	count := BlockSize * 9
+
+	keys := make([][]byte, 0, count)
+	vals := make([][]byte, 0, count)
+
 	for i := 0; i < count; i++ {
-		keys = append(keys, []byte(fmt.Sprintf("key%d", i)))
-		vals = append(vals, []byte(fmt.Sprintf("val%d", i)))
+		keys = append(keys, rng.getRandKey())
+		vals = append(vals, rng.getRandBlock())
 	}
 
 	dir, err := ioutil.TempDir("", "fsbs")
@@ -42,4 +44,5 @@ func TestInserting(t *testing.T) {
 			t.Fatal("Retrieved data not correct", i, val, vals[i])
 		}
 	}
+
 }
