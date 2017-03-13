@@ -25,7 +25,7 @@ func TestInserting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for i := 0; i < count-10; i++ {
+	for i := 0; i < count-100; i++ {
 		err := fsbs.Put(keys[i], vals[i])
 		if err != nil {
 			t.Fatal(err)
@@ -42,7 +42,7 @@ func TestInserting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for i := count - 10; i < count; i++ {
+	for i := count - 100; i < count; i++ {
 		err := fsbs.Put(keys[i], vals[i])
 		if err != nil {
 			t.Fatal(err)

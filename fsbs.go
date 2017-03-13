@@ -93,17 +93,34 @@ func (fsbs *Fsbs) Close() error {
 	return nil
 }
 
-//func (fsbs *Fsbs) nextAllocator() error {
-//currEnd := fsbs.curAlloc.Offset + BlocksPerAllocator
-//newEnd := currEnd + BlocksPerAllocator
+func (fsbs *Fsbs) nextAllocator() error {
+	currEnd := fsbs.curAlloc.Offset + BlocksPerAllocator
+	newEnd := currEnd + BlocksPerAllocator
+	if uint64(len(fsbs.mm)) < newEnd*BlockSize {
+		err := fsbs.expand()
+		if err != nil {
+			return err
+		}
+	}
 
-//}
+	nalloc, err := LoadAllocator(fsbs.mm[currEnd*BlockSize : newEnd*BlockSize])
+	if err != nil {
+		return err
+	}
+	nalloc.Offset = currEnd
+	fsbs.curAlloc = nalloc
+
+	_ = fsbs.mm[newEnd*BlockSize-1] // range check
+
+	return nil
+
+}
 
 func (fsbs *Fsbs) expand() error {
-	oldAllocEnd := BlockSize * (fsbs.curAlloc.Offset + BlocksPerAllocator)
+	currEnd := fsbs.curAlloc.Offset + BlocksPerAllocator
+	newEnd := int64(currEnd + BlocksPerAllocator)
 
-	truncateLen := int64(oldAllocEnd + BlocksPerAllocator*BlockSize)
-	err := fsbs.mmfi.Truncate(truncateLen)
+	err := fsbs.mmfi.Truncate(newEnd * BlockSize)
 	if err != nil {
 		return err
 	}
@@ -120,18 +137,6 @@ func (fsbs *Fsbs) expand() error {
 
 	fsbs.mm = nmm
 
-	newOffs := fsbs.curAlloc.Offset + BlocksPerAllocator
-	newOffsBytes := newOffs * BlockSize
-	//log.Printf("oldAllocEnd: %d, len(mm): %d, newLen: %d", oldAllocEnd, len(fsbs.mm), truncateLen)
-	//log.Printf("newOffsBytes: %d", newOffsBytes)
-
-	nalloc, err := LoadAllocator(fsbs.mm[newOffsBytes : newOffsBytes+BlockSize])
-	if err != nil {
-		return err
-	}
-
-	nalloc.Offset = newOffs
-	fsbs.curAlloc = nalloc
 	return nil
 }
 
@@ -146,9 +151,13 @@ func blocksNeeded(length uint64) uint64 {
 func (fsbs *Fsbs) allocateN(nblks uint64) ([]uint64, error) {
 	blks, err := fsbs.curAlloc.Allocate(nblks)
 
+	defer func() {
+		fmt.Printf("blks: %v\n", blks)
+	}()
+
 	switch err {
 	case ErrAllocatorFull:
-		if err := fsbs.expand(); err != nil {
+		if err := fsbs.nextAllocator(); err != nil {
 			return nil, err
 		}
 
@@ -169,6 +178,7 @@ func (fsbs *Fsbs) copyToStorage(val []byte, blks []uint64) {
 	for i, blk := range blks {
 		l := BlockSize
 		beg := i * BlockSize
+
 		if bufleft := len(val) - beg; bufleft < l {
 			l = bufleft
 		}
