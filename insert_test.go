@@ -8,7 +8,7 @@ import (
 
 func TestInserting(t *testing.T) {
 	rng := rng{}
-	count := BlockSize * 9
+	count := BlockSize * 11
 
 	keys := make([][]byte, 0, count)
 	vals := make([][]byte, 0, count)
@@ -25,7 +25,24 @@ func TestInserting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for i := 0; i < count; i++ {
+	for i := 0; i < count-10; i++ {
+		err := fsbs.Put(keys[i], vals[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err = fsbs.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fsbs, err = Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := count - 10; i < count; i++ {
 		err := fsbs.Put(keys[i], vals[i])
 		if err != nil {
 			t.Fatal(err)

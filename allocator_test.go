@@ -13,11 +13,14 @@ import (
 
 var seed int64 = -1
 var seedSlab []byte
-var seedBlocks int = 10
-var randBlockMax int = 8
+
+const (
+	seedBlocks   = 13
+	randBlockMax = 8
+)
 
 func init() {
-	seedSlab = make([]byte, BlockSize*(10+1))
+	seedSlab = make([]byte, BlockSize*(seedBlocks))
 	if seed == -1 {
 		seed = time.Now().UTC().UnixNano()
 	}
@@ -31,21 +34,22 @@ func init() {
 	}
 }
 
-func lerp(a, b int, x float64) int {
-	return a + int(float64(b)*x)
+func lerp(a, b uint64, x float64) uint64 {
+	return a + uint64(float64(b)*x)
 }
 
 type rng struct {
-	index  int
-	kindex int
+	index  uint64
+	kindex uint64
 }
 
 func (rng *rng) inc() {
-	rng.index = (rng.index + 1) % (seedBlocks - randBlockMax)
+	rng.index++
+	rng.index %= BlockSize * (seedBlocks - randBlockMax - 1)
 }
 
 func (rng *rng) getRandBlock() []byte {
-	x := float64(seedSlab[rng.index]) / 255
+	x := float64(uint8(seedSlab[rng.index])) / 255
 	rng.inc()
 	size := lerp(BlockSize/2, BlockSize*randBlockMax, x)
 
@@ -55,7 +59,7 @@ func (rng *rng) getRandBlock() []byte {
 
 func (rng *rng) getRandKey() []byte {
 	defer func() {
-		rng.kindex = rng.kindex + 1
+		rng.kindex++
 	}()
 	return seedSlab[rng.index : rng.index+32]
 }
