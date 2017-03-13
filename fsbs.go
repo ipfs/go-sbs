@@ -167,13 +167,14 @@ func (fsbs *Fsbs) allocateN(nblks uint64) ([]uint64, error) {
 
 func (fsbs *Fsbs) copyToStorage(val []byte, blks []uint64) {
 	for i, blk := range blks {
+		l := BlockSize
 		beg := i * BlockSize
-		end := (i + 1) * BlockSize
-		if len(val) < end {
-			end = len(val)
+		if bufleft := len(val) - beg; bufleft < l {
+			l = bufleft
 		}
 		//fmt.Printf("trying to write: %d, blocklen: %d", blk, len(fsbs.mm)/BlockSize)
-		copy(fsbs.mm[blk*BlockSize:(blk+1)*BlockSize], val[beg:end])
+		blkoff := blk * BlockSize
+		copy(fsbs.mm[blkoff:blkoff+uint64(l)], val[beg:beg+l])
 	}
 }
 
@@ -246,8 +247,8 @@ func (fsbs *Fsbs) Get(k []byte) ([]byte, error) {
 	var beg uint64
 	for _, blk := range prec.GetBlocks() {
 		l := uint64(BlockSize)
-		if uint64(len(out))-beg < l {
-			l = uint64(len(out)) - beg
+		if lsize := uint64(len(out)) - beg; lsize < l {
+			l = lsize
 		}
 		blkoff := blk * BlockSize
 		copy(out[beg:beg+l], fsbs.mm[blkoff:blkoff+l])
