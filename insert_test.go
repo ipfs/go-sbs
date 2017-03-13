@@ -54,8 +54,12 @@ func TestInserting(t *testing.T) {
 		if err != nil {
 			t.Fatalf("key %d: %s", i, err)
 		}
+
+		if len(val) != len(vals[i]) {
+			t.Fatalf("lengths different: %d, %d", len(val), len(vals[i]))
+		}
 		if !bytes.Equal(val, vals[i]) {
-			t.Fatal("Retrieved data not correct", i, val, vals[i])
+			t.Fatalf("Retrieved data not correct at %d", i)
 		}
 	}
 

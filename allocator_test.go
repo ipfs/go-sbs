@@ -2,6 +2,7 @@ package fsbs
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -49,7 +50,8 @@ func (rng *rng) inc() {
 }
 
 func (rng *rng) getRandBlock() []byte {
-	x := float64(uint8(seedSlab[rng.index])) / 255
+	ux := binary.LittleEndian.Uint32(seedSlab[rng.index : rng.index+4])
+	x := float64(ux) / float64(math.MaxUint32)
 	rng.inc()
 	size := lerp(BlockSize/2, BlockSize*randBlockMax, x)
 
