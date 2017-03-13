@@ -149,29 +149,25 @@ func blocksNeeded(length uint64) uint64 {
 }
 
 func (fsbs *Fsbs) allocateN(nblks uint64) ([]uint64, error) {
-	blks, err := fsbs.curAlloc.Allocate(nblks)
+	blks := make([]uint64, 0, nblks)
 
-	defer func() {
-		fmt.Printf("blks: %v\n", blks)
-	}()
-
-	switch err {
-	case ErrAllocatorFull:
-		if err := fsbs.nextAllocator(); err != nil {
-			return nil, err
-		}
-
+	for uint64(len(blks)) != nblks {
 		mblks, err := fsbs.curAlloc.Allocate(nblks - uint64(len(blks)))
-		if err != nil {
+		switch err {
+		case ErrAllocatorFull:
+			err = fsbs.nextAllocator()
+			if err != nil {
+				return nil, err
+			}
+			fallthrough
+		case nil:
+			blks = append(blks, mblks...)
+		default:
 			return nil, err
 		}
-		blks = append(blks, mblks...)
-		fallthrough
-	case nil:
-		return blks, nil
-	default:
-		return nil, err
 	}
+
+	return blks, nil
 }
 
 func (fsbs *Fsbs) copyToStorage(val []byte, blks []uint64) {
