@@ -29,7 +29,7 @@ type AllocatorBlock struct {
 }
 
 func readInt24(buf []byte) uint64 {
-	return uint64(buf[2]) + uint64(buf[1]<<8) + uint64(buf[0]<<16)
+	return uint64(buf[2]) + uint64(buf[1])<<8 + uint64(buf[0])<<16
 }
 
 func writeInt24(buf []byte, v uint64) {
