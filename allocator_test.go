@@ -72,7 +72,7 @@ func fsbsDir(t *testing.T) string {
 func TestAllocatorOverrideTest(t *testing.T) {
 	rng := rng{}
 
-	t.Logf("%x", AllocatorSlab*BlockSize)
+	t.Logf("%x", BlocksPerAllocator*BlockSize)
 
 	dir := fsbsDir(t)
 	fsbs, err := Open(dir)

@@ -14,7 +14,6 @@ const (
 const (
 	AllocatorHeaderSize = 64
 	BlocksPerAllocator  = (BlockSize - AllocatorHeaderSize) * 8
-	AllocatorSlab       = BlocksPerAllocator
 )
 
 type AllocatorBlock struct {

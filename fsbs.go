@@ -56,7 +56,7 @@ func Open(path string) (*Fsbs, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = fi.Truncate(int64(BlockSize * AllocatorSlab))
+		err = fi.Truncate(int64(BlockSize * BlocksPerAllocator))
 		if err != nil {
 			return nil, err
 		}
@@ -93,10 +93,16 @@ func (fsbs *Fsbs) Close() error {
 	return nil
 }
 
+//func (fsbs *Fsbs) nextAllocator() error {
+//currEnd := fsbs.curAlloc.Offset + BlocksPerAllocator
+//newEnd := currEnd + BlocksPerAllocator
+
+//}
+
 func (fsbs *Fsbs) expand() error {
 	oldAllocEnd := BlockSize * (fsbs.curAlloc.Offset + BlocksPerAllocator)
 
-	truncateLen := int64(oldAllocEnd + AllocatorSlab*BlockSize)
+	truncateLen := int64(oldAllocEnd + BlocksPerAllocator*BlockSize)
 	err := fsbs.mmfi.Truncate(truncateLen)
 	if err != nil {
 		return err
