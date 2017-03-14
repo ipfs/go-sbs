@@ -3,7 +3,6 @@ package fsbs
 import (
 	"github.com/boltdb/bolt"
 	ds "github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/query"
 )
 
 type Fsbsds struct {
@@ -33,7 +32,11 @@ func (fs *Fsbsds) Put(key ds.Key, value interface{}) error {
 }
 
 func (fs *Fsbsds) Get(key ds.Key) (value interface{}, err error) {
-	return fs.fsbs.Get(key.Bytes())
+	val, err := fs.fsbs.Get(key.Bytes())
+	if err == ErrNotFound {
+		return nil, ds.ErrNotFound
+	}
+	return val, err
 }
 
 func (fs *Fsbsds) Has(key ds.Key) (exists bool, err error) {
@@ -41,11 +44,11 @@ func (fs *Fsbsds) Has(key ds.Key) (exists bool, err error) {
 }
 
 func (fs *Fsbsds) Delete(key ds.Key) error {
-	return fs.fsbs.Delete(key.Bytes())
-}
-
-func (fs *Fsbsds) Query(q query.Query) (query.Results, error) {
-	panic("not implemented")
+	err := fs.fsbs.Delete(key.Bytes())
+	if err == ErrNotFound {
+		return ds.ErrNotFound
+	}
+	return err
 }
 
 func (fs *Fsbsds) Batch() (ds.Batch, error) {

@@ -235,7 +235,7 @@ func (fsbs *Fsbs) Has(k []byte) (bool, error) {
 	has := false
 	err := fsbs.index.View(func(tx *bolt.Tx) error {
 		rec := tx.Bucket(bucketOffset).Get(k)
-		if len(rec) == 0 {
+		if len(rec) != 0 {
 			has = true
 		}
 		return nil
@@ -243,13 +243,7 @@ func (fsbs *Fsbs) Has(k []byte) (bool, error) {
 	return has, err
 }
 
-func (fsbs *Fsbs) Get(k []byte) ([]byte, error) {
-	prec, err := fsbs.getPB(k)
-	if err != nil {
-		return nil, err
-	}
-
-	out := make([]byte, prec.GetSize_())
+func (fsbs *Fsbs) read(prec *pb.Record, out []byte) {
 	var beg uint64
 	for _, blk := range prec.GetBlocks() {
 		l := uint64(BlockSize)
@@ -260,6 +254,16 @@ func (fsbs *Fsbs) Get(k []byte) ([]byte, error) {
 		copy(out[beg:beg+l], fsbs.mm[blkoff:blkoff+l])
 		beg += l
 	}
+}
+
+func (fsbs *Fsbs) Get(k []byte) ([]byte, error) {
+	prec, err := fsbs.getPB(k)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]byte, prec.GetSize_())
+	fsbs.read(prec, out)
 	return out, nil
 }
 
@@ -301,9 +305,5 @@ func (fsbs *Fsbs) Delete(k []byte) error {
 			return err
 		}
 	}
-	return nil
-}
-
-func (fsbs *Fsbs) GetIterator() func() ([]byte, []byte) {
 	return nil
 }
