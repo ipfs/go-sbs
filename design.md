@@ -1,4 +1,4 @@
-# fsbs, The Fast Static Blob Store
+# sbs, The Static Blob Store
 
 ## Problem
 Filesystems and existing databases are not optimized for storing relatively
@@ -23,7 +23,7 @@ storage system that excells at storing this class of data.
 
 ## Design Overview
 
-The base layer of fsbs is the block allocator. The fsbs block allocator uses a
+The base layer of sbs is the block allocator. The sbs block allocator uses a
 bitfield to allocate ranges of 8k blocks for the rest of the system. 
 The next layer is the metadata shard. This object is a HAMT node and contains a
 header and an array of fixed size key records as well as an adjoining block
@@ -35,9 +35,9 @@ Each of these parts is discussed in detail in its respective section.
 The HAMT algorithm is used to find keys and build the tree. Blake2b 512 is the
 selected hash function for HAMT traversal.
 
-### FSBS Block Allocator
+### SBS Block Allocator
 Each allocator is an 8k block containing a small header, and a bitfield to
-track which blocks are allocated. The first block in the fsbs is the first
+track which blocks are allocated. The first block in the sbs is the first
 allocator and each following allocator is placed immediately after the range of
 blocks the previous allocator is responsible for. This way each allocator is
 predictably placed on disk and can be seeked to easily without extra
@@ -91,7 +91,7 @@ consumed.
 TODO: defragmentation. (note: should take care to make the process easily incremental)
 
 ### Metadata HAMT
-Instead of using B-Trees for managing keys, fsbs uses a Hash Array Mapped Trie
+Instead of using B-Trees for managing keys, sbs uses a Hash Array Mapped Trie
 to store key/value mappings. The Metadata block is a HAMT node and contains a
 header, a small block of space for either a bloom filter or another optimizing
 structure (NOTE: this is still being thought through), and an array of 512 Key
