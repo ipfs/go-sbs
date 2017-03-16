@@ -1,7 +1,7 @@
 package fsbs
 
 import (
-	pb "github.com/ipfs/fsbs/pb"
+	pb "github.com/ipfs/go-sbs/pb"
 
 	proto "github.com/gogo/protobuf/proto"
 	ds "github.com/ipfs/go-datastore"
@@ -11,7 +11,7 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-func (fs *Fsbsds) Query(q query.Query) (query.Results, error) {
+func (fs *Sbsds) Query(q query.Query) (query.Results, error) {
 	qrb := query.NewResultBuilder(q)
 
 	qrb.Process.Go(func(worker goprocess.Process) {

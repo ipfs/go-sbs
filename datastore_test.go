@@ -9,7 +9,7 @@ import (
 
 func TestDatastoreBatch(t *testing.T) {
 	dir := fsbsDir(t)
-	fsds, err := NewFsbsDS(dir)
+	fsds, err := NewSbsDS(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -21,7 +21,7 @@ func TestDatastoreBatch(t *testing.T) {
 
 func TestDatastoreBatchDelete(t *testing.T) {
 	dir := fsbsDir(t)
-	fsds, err := NewFsbsDS(dir)
+	fsds, err := NewSbsDS(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestDatastoreBatchDelete(t *testing.T) {
 
 func TestDatastoreQuery(t *testing.T) {
 	dir := fsbsDir(t)
-	fsds, err := NewFsbsDS(dir)
+	fsds, err := NewSbsDS(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestDatastoreQuery(t *testing.T) {
 
 func TestDatastorePutGet(t *testing.T) {
 	dir := fsbsDir(t)
-	fsds, err := NewFsbsDS(dir)
+	fsds, err := NewSbsDS(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestDatastorePutGet(t *testing.T) {
 
 func TestDatastoreNotFound(t *testing.T) {
 	dir := fsbsDir(t)
-	fsds, err := NewFsbsDS(dir)
+	fsds, err := NewSbsDS(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

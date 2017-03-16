@@ -5,24 +5,24 @@ import (
 	ds "github.com/ipfs/go-datastore"
 )
 
-type Fsbsds struct {
-	fsbs *Fsbs
+type Sbsds struct {
+	fsbs *Sbs
 	Path string
 }
 
-func NewFsbsDS(path string) (ds.Batching, error) {
+func NewSbsDS(path string) (ds.Batching, error) {
 	fsbs, err := Open(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Fsbsds{
+	return &Sbsds{
 		fsbs: fsbs,
 		Path: path,
 	}, nil
 }
 
-func (fs *Fsbsds) Put(key ds.Key, value interface{}) error {
+func (fs *Sbsds) Put(key ds.Key, value interface{}) error {
 	b, ok := value.([]byte)
 	if !ok {
 		return ds.ErrInvalidType
@@ -31,7 +31,7 @@ func (fs *Fsbsds) Put(key ds.Key, value interface{}) error {
 	return fs.fsbs.Put(key.Bytes(), b)
 }
 
-func (fs *Fsbsds) Get(key ds.Key) (value interface{}, err error) {
+func (fs *Sbsds) Get(key ds.Key) (value interface{}, err error) {
 	val, err := fs.fsbs.Get(key.Bytes())
 	if err == ErrNotFound {
 		return nil, ds.ErrNotFound
@@ -39,11 +39,11 @@ func (fs *Fsbsds) Get(key ds.Key) (value interface{}, err error) {
 	return val, err
 }
 
-func (fs *Fsbsds) Has(key ds.Key) (exists bool, err error) {
+func (fs *Sbsds) Has(key ds.Key) (exists bool, err error) {
 	return fs.fsbs.Has(key.Bytes())
 }
 
-func (fs *Fsbsds) Delete(key ds.Key) error {
+func (fs *Sbsds) Delete(key ds.Key) error {
 	err := fs.fsbs.Delete(key.Bytes())
 	if err == ErrNotFound {
 		return ds.ErrNotFound
@@ -51,7 +51,7 @@ func (fs *Fsbsds) Delete(key ds.Key) error {
 	return err
 }
 
-func (fs *Fsbsds) Batch() (ds.Batch, error) {
+func (fs *Sbsds) Batch() (ds.Batch, error) {
 	return &fsbsbatch{
 		puts:    make(map[ds.Key][]byte),
 		deletes: make(map[ds.Key]struct{}),
@@ -64,7 +64,7 @@ type fsbsbatch struct {
 	puts    map[ds.Key][]byte
 	deletes map[ds.Key]struct{}
 
-	fs *Fsbsds
+	fs *Sbsds
 }
 
 func (bt *fsbsbatch) Put(key ds.Key, val interface{}) error {
@@ -124,4 +124,4 @@ func (bt *fsbsbatch) Commit() error {
 
 var _ ds.Batch = (*fsbsbatch)(nil)
 
-var _ ds.Batching = (*Fsbsds)(nil)
+var _ ds.Batching = (*Sbsds)(nil)

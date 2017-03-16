@@ -5,10 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
+	pb "github.com/ipfs/go-sbs/pb"
+
 	"github.com/boltdb/bolt"
 	mmap "github.com/edsrzf/mmap-go"
 	proto "github.com/gogo/protobuf/proto"
-	pb "github.com/ipfs/fsbs/pb"
 )
 
 var ErrNotFound = fmt.Errorf("not found")
@@ -19,7 +20,7 @@ var (
 	bucketOffset = []byte("offsets")
 )
 
-type Fsbs struct {
+type Sbs struct {
 	Mem []byte
 
 	mmfi  *os.File
@@ -30,7 +31,7 @@ type Fsbs struct {
 	curAlloc *AllocatorBlock
 }
 
-func Open(path string) (*Fsbs, error) {
+func Open(path string) (*Sbs, error) {
 	datapath := filepath.Join(path, "data")
 	indexpath := filepath.Join(path, "index")
 
@@ -72,7 +73,7 @@ func Open(path string) (*Fsbs, error) {
 		return nil, err
 	}
 
-	return &Fsbs{
+	return &Sbs{
 		mmfi:     fi,
 		mm:       mm,
 		index:    db,
@@ -81,7 +82,7 @@ func Open(path string) (*Fsbs, error) {
 	}, nil
 }
 
-func (fsbs *Fsbs) Close() error {
+func (fsbs *Sbs) Close() error {
 	if err := fsbs.index.Close(); err != nil {
 		return err
 	}
@@ -93,7 +94,7 @@ func (fsbs *Fsbs) Close() error {
 	return nil
 }
 
-func (fsbs *Fsbs) nextAllocator() error {
+func (fsbs *Sbs) nextAllocator() error {
 	currEnd := fsbs.curAlloc.Offset + BlocksPerAllocator
 	newEnd := currEnd + BlocksPerAllocator
 	if uint64(len(fsbs.mm)) < newEnd*BlockSize {
@@ -116,7 +117,7 @@ func (fsbs *Fsbs) nextAllocator() error {
 
 }
 
-func (fsbs *Fsbs) expand() error {
+func (fsbs *Sbs) expand() error {
 	currEnd := fsbs.curAlloc.Offset + BlocksPerAllocator
 	newEnd := int64(currEnd + BlocksPerAllocator)
 
@@ -148,7 +149,7 @@ func blocksNeeded(length uint64) uint64 {
 	return nblks
 }
 
-func (fsbs *Fsbs) allocateN(nblks uint64) ([]uint64, error) {
+func (fsbs *Sbs) allocateN(nblks uint64) ([]uint64, error) {
 	blks := make([]uint64, 0, nblks)
 
 	for uint64(len(blks)) != nblks {
@@ -170,7 +171,7 @@ func (fsbs *Fsbs) allocateN(nblks uint64) ([]uint64, error) {
 	return blks, nil
 }
 
-func (fsbs *Fsbs) copyToStorage(val []byte, blks []uint64) {
+func (fsbs *Sbs) copyToStorage(val []byte, blks []uint64) {
 	for i, blk := range blks {
 		l := BlockSize
 		beg := i * BlockSize
@@ -195,7 +196,7 @@ func createRecord(val []byte, blks []uint64) ([]byte, error) {
 	return proto.Marshal(rec)
 }
 
-func (fsbs *Fsbs) Put(k []byte, val []byte) error {
+func (fsbs *Sbs) Put(k []byte, val []byte) error {
 	nblks := blocksNeeded(uint64(len(val)))
 	blks, err := fsbs.allocateN(nblks)
 	if err != nil {
@@ -216,7 +217,7 @@ func (fsbs *Fsbs) Put(k []byte, val []byte) error {
 	return err
 }
 
-func (fsbs *Fsbs) getPB(k []byte) (*pb.Record, error) {
+func (fsbs *Sbs) getPB(k []byte) (*pb.Record, error) {
 	var prec pb.Record
 
 	err := fsbs.index.View(func(tx *bolt.Tx) error {
@@ -231,7 +232,7 @@ func (fsbs *Fsbs) getPB(k []byte) (*pb.Record, error) {
 	return &prec, err
 }
 
-func (fsbs *Fsbs) Has(k []byte) (bool, error) {
+func (fsbs *Sbs) Has(k []byte) (bool, error) {
 	has := false
 	err := fsbs.index.View(func(tx *bolt.Tx) error {
 		rec := tx.Bucket(bucketOffset).Get(k)
@@ -243,7 +244,7 @@ func (fsbs *Fsbs) Has(k []byte) (bool, error) {
 	return has, err
 }
 
-func (fsbs *Fsbs) read(prec *pb.Record, out []byte) {
+func (fsbs *Sbs) read(prec *pb.Record, out []byte) {
 	var beg uint64
 	for _, blk := range prec.GetBlocks() {
 		l := uint64(BlockSize)
@@ -256,7 +257,7 @@ func (fsbs *Fsbs) read(prec *pb.Record, out []byte) {
 	}
 }
 
-func (fsbs *Fsbs) Get(k []byte) ([]byte, error) {
+func (fsbs *Sbs) Get(k []byte) ([]byte, error) {
 	prec, err := fsbs.getPB(k)
 	if err != nil {
 		return nil, err
@@ -267,7 +268,7 @@ func (fsbs *Fsbs) Get(k []byte) ([]byte, error) {
 	return out, nil
 }
 
-func (fsbs *Fsbs) Delete(k []byte) error {
+func (fsbs *Sbs) Delete(k []byte) error {
 	var prec pb.Record
 
 	err := fsbs.index.Update(func(tx *bolt.Tx) error {
