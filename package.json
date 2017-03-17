@@ -24,6 +24,12 @@
       "hash": "QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364",
       "name": "go-datastore",
       "version": "1.2.0"
+    },
+    {
+      "author": "gxed",
+      "hash": "QmbEDCQk9CYJsYQ6rpQ5Jzgcs9YYfgQsH5CzGRFQzKxcjn",
+      "name": "mmap-go",
+      "version": "0.1.0"
     }
   ],
   "gxVersion": "0.9.0",

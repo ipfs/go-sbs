@@ -9,5 +9,5 @@ install:
   - go get github.com/whyrusleeping/gx-go
   - gx install --global
 script:
-  - gx test -v
+  - gx test -v .
   

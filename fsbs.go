@@ -8,7 +8,7 @@ import (
 	pb "github.com/ipfs/go-sbs/pb"
 
 	"github.com/boltdb/bolt"
-	mmap "github.com/edsrzf/mmap-go"
+	mmap "github.com/gxed/mmap-go"
 	proto "github.com/gogo/protobuf/proto"
 )
 
