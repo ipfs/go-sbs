@@ -1,3 +1,6 @@
+sudo: fals
+
+
 language: go
 go:
 - 'tip'
@@ -5,7 +8,6 @@ install:
   - go get github.com/whyrusleeping/gx
   - go get github.com/whyrusleeping/gx-go
   - gx install --global
-  - gx-go rewrite
 script:
-  - go test -v
+  - gx test -v
   
