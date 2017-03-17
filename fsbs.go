@@ -8,8 +8,8 @@ import (
 	pb "github.com/ipfs/go-sbs/pb"
 
 	"github.com/boltdb/bolt"
-	mmap "github.com/gxed/mmap-go"
 	proto "github.com/gogo/protobuf/proto"
+	mmap "github.com/gxed/mmap-go"
 )
 
 var ErrNotFound = fmt.Errorf("not found")

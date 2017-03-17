@@ -30,6 +30,12 @@
       "hash": "QmbEDCQk9CYJsYQ6rpQ5Jzgcs9YYfgQsH5CzGRFQzKxcjn",
       "name": "mmap-go",
       "version": "0.1.0"
+    },
+    {
+      "author": "boltdb",
+      "hash": "Qmept6ykwhJ84rEai5voYC9A9pJhkrevQ9TJvBaLj2HRR3",
+      "name": "bolt",
+      "version": "1.3.1"
     }
   ],
   "gxVersion": "0.9.0",
