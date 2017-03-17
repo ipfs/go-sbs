@@ -1,4 +1,4 @@
-package fsbs
+package sbs
 
 import (
 	pb "github.com/ipfs/go-sbs/pb"
@@ -15,7 +15,7 @@ func (fs *Sbsds) Query(q query.Query) (query.Results, error) {
 	qrb := query.NewResultBuilder(q)
 
 	qrb.Process.Go(func(worker goprocess.Process) {
-		fs.fsbs.index.View(func(tx *bolt.Tx) error {
+		fs.sbs.index.View(func(tx *bolt.Tx) error {
 
 			buck := tx.Bucket(bucketOffset)
 			c := buck.Cursor()
@@ -48,7 +48,7 @@ func (fs *Sbsds) Query(q query.Query) (query.Results, error) {
 					}
 					l := prec.GetSize_()
 					buf := make([]byte, l)
-					fs.fsbs.read(&prec, buf)
+					fs.sbs.read(&prec, buf)
 
 					e.Value = buf
 				}

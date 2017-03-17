@@ -1,4 +1,4 @@
-package fsbs
+package sbs
 
 import "testing"
 

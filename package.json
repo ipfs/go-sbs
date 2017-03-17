@@ -12,6 +12,18 @@
       "hash": "QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV",
       "name": "gogo-protobuf",
       "version": "0.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP",
+      "name": "goprocess",
+      "version": "1.0.0"
+    },
+    {
+      "author": "jbenet",
+      "hash": "QmRWDav6mzWseLWeYfVd5fvUKiVe9xNH29YfMF438fG364",
+      "name": "go-datastore",
+      "version": "1.2.0"
     }
   ],
   "gxVersion": "0.9.0",
@@ -20,3 +32,4 @@
   "name": "go-sbs",
   "version": "0.0.0"
 }
+

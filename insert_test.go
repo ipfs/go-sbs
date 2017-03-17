@@ -1,4 +1,4 @@
-package fsbs
+package sbs
 
 import (
 	"bytes"
@@ -18,39 +18,39 @@ func TestInserting(t *testing.T) {
 		vals = append(vals, rng.getRandBlock())
 	}
 
-	dir := fsbsDir(t)
+	dir := sbsDir(t)
 
-	fsbs, err := Open(dir)
+	sbs, err := Open(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for i := 0; i < count-100; i++ {
-		err := fsbs.Put(keys[i], vals[i])
+		err := sbs.Put(keys[i], vals[i])
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	err = fsbs.Close()
+	err = sbs.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fsbs, err = Open(dir)
+	sbs, err = Open(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for i := count - 100; i < count; i++ {
-		err := fsbs.Put(keys[i], vals[i])
+		err := sbs.Put(keys[i], vals[i])
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	for i, k := range keys {
-		val, err := fsbs.Get(k)
+		val, err := sbs.Get(k)
 		if err != nil {
 			t.Fatalf("key %d: %s", i, err)
 		}

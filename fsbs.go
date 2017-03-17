@@ -1,4 +1,4 @@
-package fsbs
+package sbs
 
 import (
 	"fmt"
@@ -82,61 +82,61 @@ func Open(path string) (*Sbs, error) {
 	}, nil
 }
 
-func (fsbs *Sbs) Close() error {
-	if err := fsbs.index.Close(); err != nil {
+func (sbs *Sbs) Close() error {
+	if err := sbs.index.Close(); err != nil {
 		return err
 	}
 
-	if err := fsbs.mm.Unmap(); err != nil {
+	if err := sbs.mm.Unmap(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (fsbs *Sbs) nextAllocator() error {
-	currEnd := fsbs.curAlloc.Offset + BlocksPerAllocator
+func (sbs *Sbs) nextAllocator() error {
+	currEnd := sbs.curAlloc.Offset + BlocksPerAllocator
 	newEnd := currEnd + BlocksPerAllocator
-	if uint64(len(fsbs.mm)) < newEnd*BlockSize {
-		err := fsbs.expand()
+	if uint64(len(sbs.mm)) < newEnd*BlockSize {
+		err := sbs.expand()
 		if err != nil {
 			return err
 		}
 	}
 
-	nalloc, err := LoadAllocator(fsbs.mm[currEnd*BlockSize : newEnd*BlockSize])
+	nalloc, err := LoadAllocator(sbs.mm[currEnd*BlockSize : newEnd*BlockSize])
 	if err != nil {
 		return err
 	}
 	nalloc.Offset = currEnd
-	fsbs.curAlloc = nalloc
+	sbs.curAlloc = nalloc
 
-	_ = fsbs.mm[newEnd*BlockSize-1] // range check
+	_ = sbs.mm[newEnd*BlockSize-1] // range check
 
 	return nil
 
 }
 
-func (fsbs *Sbs) expand() error {
-	currEnd := fsbs.curAlloc.Offset + BlocksPerAllocator
+func (sbs *Sbs) expand() error {
+	currEnd := sbs.curAlloc.Offset + BlocksPerAllocator
 	newEnd := int64(currEnd + BlocksPerAllocator)
 
-	err := fsbs.mmfi.Truncate(newEnd * BlockSize)
+	err := sbs.mmfi.Truncate(newEnd * BlockSize)
 	if err != nil {
 		return err
 	}
 
-	err = fsbs.mm.Unmap()
+	err = sbs.mm.Unmap()
 	if err != nil {
 		return err
 	}
 
-	nmm, err := mmap.Map(fsbs.mmfi, mmap.RDWR, 0)
+	nmm, err := mmap.Map(sbs.mmfi, mmap.RDWR, 0)
 	if err != nil {
 		return err
 	}
 
-	fsbs.mm = nmm
+	sbs.mm = nmm
 
 	return nil
 }
@@ -149,14 +149,14 @@ func blocksNeeded(length uint64) uint64 {
 	return nblks
 }
 
-func (fsbs *Sbs) allocateN(nblks uint64) ([]uint64, error) {
+func (sbs *Sbs) allocateN(nblks uint64) ([]uint64, error) {
 	blks := make([]uint64, 0, nblks)
 
 	for uint64(len(blks)) != nblks {
-		mblks, err := fsbs.curAlloc.Allocate(nblks - uint64(len(blks)))
+		mblks, err := sbs.curAlloc.Allocate(nblks - uint64(len(blks)))
 		switch err {
 		case ErrAllocatorFull:
-			err = fsbs.nextAllocator()
+			err = sbs.nextAllocator()
 			if err != nil {
 				return nil, err
 			}
@@ -171,7 +171,7 @@ func (fsbs *Sbs) allocateN(nblks uint64) ([]uint64, error) {
 	return blks, nil
 }
 
-func (fsbs *Sbs) copyToStorage(val []byte, blks []uint64) {
+func (sbs *Sbs) copyToStorage(val []byte, blks []uint64) {
 	for i, blk := range blks {
 		l := BlockSize
 		beg := i * BlockSize
@@ -179,9 +179,9 @@ func (fsbs *Sbs) copyToStorage(val []byte, blks []uint64) {
 		if bufleft := len(val) - beg; bufleft < l {
 			l = bufleft
 		}
-		//fmt.Printf("trying to write: %d, blocklen: %d", blk, len(fsbs.mm)/BlockSize)
+		//fmt.Printf("trying to write: %d, blocklen: %d", blk, len(sbs.mm)/BlockSize)
 		blkoff := blk * BlockSize
-		copy(fsbs.mm[blkoff:blkoff+uint64(l)], val[beg:beg+l])
+		copy(sbs.mm[blkoff:blkoff+uint64(l)], val[beg:beg+l])
 	}
 }
 
@@ -196,9 +196,9 @@ func createRecord(val []byte, blks []uint64) ([]byte, error) {
 	return proto.Marshal(rec)
 }
 
-func (fsbs *Sbs) Put(k []byte, val []byte) error {
+func (sbs *Sbs) Put(k []byte, val []byte) error {
 	nblks := blocksNeeded(uint64(len(val)))
-	blks, err := fsbs.allocateN(nblks)
+	blks, err := sbs.allocateN(nblks)
 	if err != nil {
 		return err
 	}
@@ -207,9 +207,9 @@ func (fsbs *Sbs) Put(k []byte, val []byte) error {
 		return err
 	}
 
-	fsbs.copyToStorage(val, blks)
+	sbs.copyToStorage(val, blks)
 
-	err = fsbs.index.Update(func(tx *bolt.Tx) error {
+	err = sbs.index.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketOffset)
 		return b.Put(k, data)
 	})
@@ -217,10 +217,10 @@ func (fsbs *Sbs) Put(k []byte, val []byte) error {
 	return err
 }
 
-func (fsbs *Sbs) getPB(k []byte) (*pb.Record, error) {
+func (sbs *Sbs) getPB(k []byte) (*pb.Record, error) {
 	var prec pb.Record
 
-	err := fsbs.index.View(func(tx *bolt.Tx) error {
+	err := sbs.index.View(func(tx *bolt.Tx) error {
 		rec := tx.Bucket(bucketOffset).Get(k)
 		if len(rec) == 0 {
 			return ErrNotFound
@@ -232,9 +232,9 @@ func (fsbs *Sbs) getPB(k []byte) (*pb.Record, error) {
 	return &prec, err
 }
 
-func (fsbs *Sbs) Has(k []byte) (bool, error) {
+func (sbs *Sbs) Has(k []byte) (bool, error) {
 	has := false
-	err := fsbs.index.View(func(tx *bolt.Tx) error {
+	err := sbs.index.View(func(tx *bolt.Tx) error {
 		rec := tx.Bucket(bucketOffset).Get(k)
 		if len(rec) != 0 {
 			has = true
@@ -244,7 +244,7 @@ func (fsbs *Sbs) Has(k []byte) (bool, error) {
 	return has, err
 }
 
-func (fsbs *Sbs) read(prec *pb.Record, out []byte) {
+func (sbs *Sbs) read(prec *pb.Record, out []byte) {
 	var beg uint64
 	for _, blk := range prec.GetBlocks() {
 		l := uint64(BlockSize)
@@ -252,26 +252,26 @@ func (fsbs *Sbs) read(prec *pb.Record, out []byte) {
 			l = lsize
 		}
 		blkoff := blk * BlockSize
-		copy(out[beg:beg+l], fsbs.mm[blkoff:blkoff+l])
+		copy(out[beg:beg+l], sbs.mm[blkoff:blkoff+l])
 		beg += l
 	}
 }
 
-func (fsbs *Sbs) Get(k []byte) ([]byte, error) {
-	prec, err := fsbs.getPB(k)
+func (sbs *Sbs) Get(k []byte) ([]byte, error) {
+	prec, err := sbs.getPB(k)
 	if err != nil {
 		return nil, err
 	}
 
 	out := make([]byte, prec.GetSize_())
-	fsbs.read(prec, out)
+	sbs.read(prec, out)
 	return out, nil
 }
 
-func (fsbs *Sbs) Delete(k []byte) error {
+func (sbs *Sbs) Delete(k []byte) error {
 	var prec pb.Record
 
-	err := fsbs.index.Update(func(tx *bolt.Tx) error {
+	err := sbs.index.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketOffset)
 		rec := b.Get(k)
 		if len(rec) == 0 {
@@ -297,7 +297,7 @@ func (fsbs *Sbs) Delete(k []byte) error {
 
 	for wa, list := range tofree {
 		beg := wa * BlockSize * BlocksPerAllocator
-		alloc, err := LoadAllocator(fsbs.mm[beg : beg+BlockSize])
+		alloc, err := LoadAllocator(sbs.mm[beg : beg+BlockSize])
 		if err != nil {
 			return err
 		}
