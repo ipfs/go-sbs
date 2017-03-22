@@ -10,7 +10,7 @@ type Sbsds struct {
 	Path string
 }
 
-func NewSbsDS(path string) (ds.Batching, error) {
+func NewSbsDS(path string) (*Sbsds, error) {
 	sbs, err := Open(path)
 	if err != nil {
 		return nil, err
@@ -122,6 +122,11 @@ func (bt *sbsbatch) Commit() error {
 	return nil
 }
 
+func (fs *Sbsds) Close() error {
+	return fs.sbs.Close()
+}
+
 var _ ds.Batch = (*sbsbatch)(nil)
 
+var _ ds.Datastore = (*Sbsds)(nil)
 var _ ds.Batching = (*Sbsds)(nil)
