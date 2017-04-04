@@ -3,17 +3,14 @@ package sbs
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/ipfs/go-sbs/consts"
 )
 
 var ErrAllocatorFull = fmt.Errorf("allocator full")
 
 const (
 	FlagFragmented = 1 << iota
-)
-
-const (
-	AllocatorHeaderSize = 64
-	BlocksPerAllocator  = (BlockSize - AllocatorHeaderSize) * 8
 )
 
 type AllocatorBlock struct {
@@ -78,13 +75,13 @@ func (a *AllocatorBlock) Allocate(n uint64) ([]uint64, error) {
 		panic("cant handle fragmented allocation yet")
 	}
 
-	if a.InUse == BlocksPerAllocator {
+	if a.InUse == consts.BlocksPerAllocator {
 		return nil, ErrAllocatorFull
 	}
 
 	var errFinal error
-	if n > BlocksPerAllocator-a.InUse {
-		n = BlocksPerAllocator - a.InUse
+	if n > consts.BlocksPerAllocator-a.InUse {
+		n = consts.BlocksPerAllocator - a.InUse
 		errFinal = ErrAllocatorFull
 	}
 

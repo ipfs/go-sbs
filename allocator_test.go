@@ -10,6 +10,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/ipfs/go-sbs/consts"
 )
 
 var seed int64 = -1
@@ -21,7 +23,7 @@ const (
 )
 
 func init() {
-	seedSlab = make([]byte, BlockSize*(seedBlocks))
+	seedSlab = make([]byte, consts.BlockSize*(seedBlocks))
 	if seed == -1 {
 		seed = time.Now().UTC().UnixNano()
 	}
@@ -46,14 +48,14 @@ type rng struct {
 
 func (rng *rng) inc() {
 	rng.index++
-	rng.index %= BlockSize * (seedBlocks - randBlockMax - 1)
+	rng.index %= consts.BlockSize * (seedBlocks - randBlockMax - 1)
 }
 
 func (rng *rng) getRandBlock() []byte {
 	ux := binary.LittleEndian.Uint32(seedSlab[rng.index : rng.index+4])
 	x := float64(ux) / float64(math.MaxUint32)
 	rng.inc()
-	size := lerp(BlockSize/2, BlockSize*randBlockMax, x)
+	size := lerp(consts.BlockSize/2, consts.BlockSize*randBlockMax, x)
 
 	defer rng.inc()
 	return seedSlab[rng.index : rng.index+size]
@@ -78,7 +80,7 @@ func sbsDir(t *testing.T) string {
 func TestAllocatorOverrideTest(t *testing.T) {
 	rng := rng{}
 
-	t.Logf("%x", BlocksPerAllocator*BlockSize)
+	t.Logf("%x", consts.BlocksPerAllocator*consts.BlockSize)
 
 	dir := sbsDir(t)
 	sbs, err := Open(dir)
@@ -162,7 +164,7 @@ func TestSampleExpand(t *testing.T) {
 	if len(blks) < 8000 {
 		t.Fatalf("too little %d", len(blks))
 	}
-	buf := make([]byte, BlockSize)
+	buf := make([]byte, consts.BlockSize)
 	for i, _ := range buf {
 		buf[i] = 0x41
 	}

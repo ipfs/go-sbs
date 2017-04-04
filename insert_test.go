@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"os"
 	"testing"
+
+	"github.com/ipfs/go-sbs/consts"
 )
 
 func TestInserting(t *testing.T) {
 	rng := rng{}
-	count := BlockSize * 11
+	count := consts.BlockSize * 11
 
 	keys := make([][]byte, 0, count)
 	vals := make([][]byte, 0, count)

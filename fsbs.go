@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ipfs/go-sbs/consts"
 	pb "github.com/ipfs/go-sbs/pb"
 
 	"github.com/boltdb/bolt"
@@ -13,8 +14,6 @@ import (
 )
 
 var ErrNotFound = fmt.Errorf("not found")
-
-const BlockSize = 8192
 
 var (
 	bucketOffset = []byte("offsets")
@@ -57,7 +56,7 @@ func Open(path string) (*Sbs, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = fi.Truncate(int64(BlockSize * BlocksPerAllocator))
+		err = fi.Truncate(int64(consts.BlockSize * consts.BlocksPerAllocator))
 		if err != nil {
 			return nil, err
 		}
@@ -68,7 +67,7 @@ func Open(path string) (*Sbs, error) {
 		return nil, err
 	}
 
-	alloc, err := LoadAllocator(mm[:BlockSize])
+	alloc, err := LoadAllocator(mm[:consts.BlockSize])
 	if err != nil {
 		return nil, err
 	}
@@ -95,33 +94,33 @@ func (sbs *Sbs) Close() error {
 }
 
 func (sbs *Sbs) nextAllocator() error {
-	currEnd := sbs.curAlloc.Offset + BlocksPerAllocator
-	newEnd := currEnd + BlocksPerAllocator
-	if uint64(len(sbs.mm)) < newEnd*BlockSize {
+	currEnd := sbs.curAlloc.Offset + consts.BlocksPerAllocator
+	newEnd := currEnd + consts.BlocksPerAllocator
+	if uint64(len(sbs.mm)) < newEnd*consts.BlockSize {
 		err := sbs.expand()
 		if err != nil {
 			return err
 		}
 	}
 
-	nalloc, err := LoadAllocator(sbs.mm[currEnd*BlockSize : newEnd*BlockSize])
+	nalloc, err := LoadAllocator(sbs.mm[currEnd*consts.BlockSize : newEnd*consts.BlockSize])
 	if err != nil {
 		return err
 	}
 	nalloc.Offset = currEnd
 	sbs.curAlloc = nalloc
 
-	_ = sbs.mm[newEnd*BlockSize-1] // range check
+	_ = sbs.mm[newEnd*consts.BlockSize-1] // range check
 
 	return nil
 
 }
 
 func (sbs *Sbs) expand() error {
-	currEnd := sbs.curAlloc.Offset + BlocksPerAllocator
-	newEnd := int64(currEnd + BlocksPerAllocator)
+	currEnd := sbs.curAlloc.Offset + consts.BlocksPerAllocator
+	newEnd := int64(currEnd + consts.BlocksPerAllocator)
 
-	err := sbs.mmfi.Truncate(newEnd * BlockSize)
+	err := sbs.mmfi.Truncate(newEnd * consts.BlockSize)
 	if err != nil {
 		return err
 	}
@@ -142,8 +141,8 @@ func (sbs *Sbs) expand() error {
 }
 
 func blocksNeeded(length uint64) uint64 {
-	nblks := length / BlockSize
-	if length%BlockSize != 0 {
+	nblks := length / consts.BlockSize
+	if length%consts.BlockSize != 0 {
 		nblks++
 	}
 	return nblks
@@ -173,14 +172,14 @@ func (sbs *Sbs) allocateN(nblks uint64) ([]uint64, error) {
 
 func (sbs *Sbs) copyToStorage(val []byte, blks []uint64) {
 	for i, blk := range blks {
-		l := BlockSize
-		beg := i * BlockSize
+		l := consts.BlockSize
+		beg := i * consts.BlockSize
 
 		if bufleft := len(val) - beg; bufleft < l {
 			l = bufleft
 		}
-		//fmt.Printf("trying to write: %d, blocklen: %d", blk, len(sbs.mm)/BlockSize)
-		blkoff := blk * BlockSize
+		//fmt.Printf("trying to write: %d, blocklen: %d", blk, len(sbs.mm)/consts.BlockSize)
+		blkoff := blk * consts.BlockSize
 		copy(sbs.mm[blkoff:blkoff+uint64(l)], val[beg:beg+l])
 	}
 }
@@ -247,11 +246,11 @@ func (sbs *Sbs) Has(k []byte) (bool, error) {
 func (sbs *Sbs) read(prec *pb.Record, out []byte) {
 	var beg uint64
 	for _, blk := range prec.GetBlocks() {
-		l := uint64(BlockSize)
+		l := uint64(consts.BlockSize)
 		if lsize := uint64(len(out)) - beg; lsize < l {
 			l = lsize
 		}
-		blkoff := blk * BlockSize
+		blkoff := blk * consts.BlockSize
 		copy(out[beg:beg+l], sbs.mm[blkoff:blkoff+l])
 		beg += l
 	}
@@ -290,14 +289,14 @@ func (sbs *Sbs) Delete(k []byte) error {
 
 	tofree := make(map[uint64][]uint64)
 	for _, blk := range prec.GetBlocks() {
-		wa := blk / BlocksPerAllocator
-		wi := blk % BlocksPerAllocator
+		wa := blk / consts.BlocksPerAllocator
+		wi := blk % consts.BlocksPerAllocator
 		tofree[wa] = append(tofree[wa], wi)
 	}
 
 	for wa, list := range tofree {
-		beg := wa * BlockSize * BlocksPerAllocator
-		alloc, err := LoadAllocator(sbs.mm[beg : beg+BlockSize])
+		beg := wa * consts.BlockSize * consts.BlocksPerAllocator
+		alloc, err := LoadAllocator(sbs.mm[beg : beg+consts.BlockSize])
 		if err != nil {
 			return err
 		}
