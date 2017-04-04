@@ -20,13 +20,8 @@ type Superblock struct {
 // Open creates new Superblock structure backed by underlying block.
 // The blk has to be BlockSize in size
 func OpenSuperblock(blk []byte) (*Superblock, error) {
-	if consts.BlockSize != 1<<13 {
-		panic("BlockSize has changed, logic in this package might be wrong")
-	}
-
 	if len(blk) != consts.BlockSize {
-		return nil, errors.Errorf("wrong size passed, expected %d, got %d",
-			consts.BlockSize, len(blk))
+		return nil, errBlockSizeDifferent
 	}
 
 	s := &Superblock{
