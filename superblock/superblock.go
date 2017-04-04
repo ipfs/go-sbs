@@ -10,39 +10,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-const (
-	magicStart    = 1024 // start padding see: https://git.io/vS4Eu
-	magicEnd      = magicStart + 16
-	uuidStart     = magicEnd
-	uuidEnd       = uuidStart + 16
-	versionStart  = uuidEnd
-	versionEnd    = versionStart + 2
-	flagsStart    = versionEnd
-	flagsEnd      = flagsStart + 2
-	blkSizeStart  = flagsEnd
-	blkSizeEnd    = blkSizeStart + 4
-	zero1Start    = blkSizeEnd
-	zero1End      = consts.BlockSize / 2
-	uuidCopyStart = zero1End
-	uuidCopyEnd   = uuidCopyStart + 16
-	zero2Start    = uuidCopyEnd
-	zero2End      = consts.BlockSize
-)
-
-const (
-	magicBytes = "sbsisablockstore"
-)
-
-var (
-	errMagicMissMatch      = errors.New("magic bytes different than expected")
-	errUUIDCopyMissMatch   = errors.New("copies of UUID and different")
-	errZeroPartIsNotZeroed = errors.New("area that should be zero is not")
-	errWrongVersion        = errors.New("version is not 1")
-	errFlagsReserved       = errors.New("reserved flag is set")
-	errBlockSizeDifferent  = errors.New("blockszie different than implemntation")
-	errUUIDNil             = errors.New("UUID is Nil")
-)
-
 var (
 	binary binenc.ByteOrder = binenc.LittleEndian
 )
