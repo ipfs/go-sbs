@@ -11,6 +11,7 @@ func Format(blk []byte) error {
 	}
 	u := uuid.NewV4()
 
+	w.SetMagicBytes()
 	w.SetUUID(u)
 	w.SetVersion(1)
 	w.SetFlags(0)

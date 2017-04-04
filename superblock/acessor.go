@@ -20,7 +20,7 @@ func NewAccessor(blk []byte) *Accessor {
 }
 
 func (a *Accessor) checks() error {
-	if !bytes.Equal(a.blk[magicStart:magicEnd], []byte(magicBytes)) {
+	if !bytes.Equal(a.MagicBytes(), []byte(magicBytes)) {
 		return errMagicMissMatch
 	}
 	if a.Version() != 1 {
@@ -62,6 +62,10 @@ func isJustZero(buf []byte) bool {
 		}
 	}
 	return true
+}
+
+func (a *Accessor) MagicBytes() []byte {
+	return a.blk[magicStart:magicEnd]
 }
 
 // UUID returns UUID os sbs volumene

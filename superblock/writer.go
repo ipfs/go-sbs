@@ -16,6 +16,10 @@ func NewWriter(blk []byte) *Writer {
 	}
 }
 
+func (w *Writer) SetMagicBytes() {
+	copy(w.blk[magicStart:magicEnd], []byte(magicBytes))
+}
+
 // SetUUID writes both Primary and Secondary UUID to Superblock
 func (w *Writer) SetUUID(u uuid.UUID) {
 	copy(w.blk[uuidStart:uuidEnd], u[:])
@@ -35,11 +39,13 @@ func (w *Writer) SetBlocksize(bsize uint32) {
 }
 
 func (w *Writer) ZeroOutZeros() {
-	for i, _ := range w.blk[zero1Start:zero1End] {
-		w.blk[i] = byte(0)
+	s := w.blk[zero1Start:zero1End]
+	for i, _ := range s {
+		s[i] = byte(0)
 	}
 
-	for i, _ := range w.blk[zero2Start:zero2End] {
-		w.blk[i] = byte(0)
+	s = w.blk[zero2Start:zero2End]
+	for i, _ := range s {
+		s[i] = byte(0)
 	}
 }
