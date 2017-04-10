@@ -33,12 +33,6 @@ func FormatAllocator(blk []byte, u uuid.UUID) error {
 	copy(blk[uuidStart:uuidEnd], u[:])
 	aloc := OpenAllocator(blk)
 
-	// paranoia check
-	readUUID := aloc.UUID()
-	if !uuid.Equal(u, readUUID) {
-		panic("uuid not equal, this SHOULD NOT happen")
-	}
-
 	aloc.setBit(0)
 
 	return nil
@@ -122,23 +116,28 @@ outer:
 			}
 		}
 
-		for !a.getBit(a.tip) {
+		for a.getBit(a.tip) {
 			if err := a.incTip(); err != nil {
 				a.setFull()
 				return 0, 0, errors.Trace(err)
 			}
 		}
 		start = a.tip
+		end = start
 
-		for end-start != count {
+		for end-start+1 != count {
 			if err := a.incTip(); err != nil {
 				a.setFull()
 				return 0, 0, errors.Trace(err)
 			}
-			if !a.getBit(a.tip) {
+			if a.getBit(a.tip) {
 				continue outer
 			}
 			end = a.tip
+		}
+
+		for i := uint(start); i <= end; i++ {
+			a.setBit(i)
 		}
 		return start, end, nil
 	}
